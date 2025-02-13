@@ -23,8 +23,7 @@ ARG TARGETVARIANT
 RUN if [ "${TARGETVARIANT}" = "v6" ] && [ "${TARGETARCH}" = "arm" ]; then export GOARM=6; fi; \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} CONTAINER_BUILD=1 make LINK_FLAGS="-w -s" cloudflared 
 
-# Runtime container
-FROM scratch
+FROM alpine:${ALPINEVERSION}
 WORKDIR /
 
 COPY --from=build /src/cloudflared .
@@ -34,5 +33,4 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENV TUNNEL_TOKEN=""
 
 # Start cloudflared using the token from environment variable
-ENTRYPOINT ["cloudflared", "tunnel", "--no-autoupdate", "run", "--token"]
-CMD ["${TUNNEL_TOKEN}"]
+ENTRYPOINT ["/bin/sh", "-c","/cloudflared tunnel --no-autoupdate run --token $TUNNEL_TOKEN"]
