@@ -39,4 +39,4 @@ ENV TUNNEL_TOKEN=""
 
 USER nonroot
 # Start cloudflared using the token from environment variable
-ENTRYPOINT ["/bin/sh", "-c","/cloudflared tunnel --no-autoupdate run --loglevel debug --token $TUNNEL_TOKEN"]
+ENTRYPOINT ["/bin/sh", "-c","/cloudflared tunnel --no-autoupdate run --token $TUNNEL_TOKEN"]
