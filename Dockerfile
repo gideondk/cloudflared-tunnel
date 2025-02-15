@@ -6,7 +6,11 @@ FROM --platform=${BUILDPLATFORM} \
     golang:$GOVERSION-alpine${ALPINEVERSION} AS build
 
 WORKDIR /src
+
 RUN apk --no-cache add git build-base bash
+# Use non-root user for building
+RUN adduser -D build
+USER build
 
 ENV GO111MODULE=on \
     CGO_ENABLED=0
@@ -23,14 +27,16 @@ ARG TARGETVARIANT
 RUN if [ "${TARGETVARIANT}" = "v6" ] && [ "${TARGETARCH}" = "arm" ]; then export GOARM=6; fi; \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} CONTAINER_BUILD=1 make LINK_FLAGS="-w -s" cloudflared 
 
-FROM alpine:${ALPINEVERSION}
+# Use distroless as minimal base image
+FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /
 
-COPY --from=build /src/cloudflared .
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /src/cloudflared /cloudflared
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Environment variable for the token
 ENV TUNNEL_TOKEN=""
 
+USER nonroot
 # Start cloudflared using the token from environment variable
-ENTRYPOINT ["/bin/sh", "-c","/cloudflared tunnel --no-autoupdate run --token $TUNNEL_TOKEN"]
+ENTRYPOINT ["/bin/sh", "-c","/cloudflared tunnel --no-autoupdate run --loglevel debug --token $TUNNEL_TOKEN"]
